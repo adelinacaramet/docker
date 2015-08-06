@@ -3,6 +3,7 @@ elasticsearch:
   ports:
     - "9200:9200"
     - "9300:9300"
+  restart: always  
 logstash:
   image: logstash:latest
   command: logstash -f /etc/logstash/conf.d/logstash.conf
@@ -10,6 +11,11 @@ logstash:
     - logstash-conf:/etc/logstash/conf.d
   ports:
     - "5000:5000"
+    - "5000:5000/udp"
+  expose:
+    - 5000/udp  
+  environment:
+    - LOGSPOUT=ignore
   links:
     - elasticsearch
   hostname: logstash
@@ -18,13 +24,14 @@ logstash:
 # since we don't actually want the logs of the logstash instance (or do we?)
 logspout:
   build: logspout/
+  command: logstash://logstash:5000
+  volumes: 
+   - /var/run/docker.sock:/var/run/docker.sock
   environment:
     - DEBUG=true
-    - ROUTE_URIS=logstash://logstash:5000
-  volumes: 
-   - /var/run/docker.sock:/tmp/docker.sock
   links:
     -  logstash
+  restart: always  
 kibana:
   build: kibana/
   ports:
