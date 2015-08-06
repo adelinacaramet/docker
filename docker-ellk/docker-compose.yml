@@ -2,6 +2,7 @@ elasticsearch:
   build: elasticsearch/
   ports:
     - "9200:9200"
+    - "9300:9300"
 logstash:
   image: logstash:latest
   command: logstash -f /etc/logstash/conf.d/logstash.conf
@@ -12,21 +13,18 @@ logstash:
   links:
     - elasticsearch
   hostname: logstash
-  restart: always
 # Apparently logspout needs to either start first or all other
 # containers need to be restarted after it's up for it to get logs
 # since we don't actually want the logs of the logstash instance (or do we?)
 logspout:
   build: logspout/
-  volumes: /var/run/docker.sock:/tmp/docker.sock
-  # Send it to the simplelogstash instance
-  # Since we'll link to the logstash instance and entry will be added to
-  # /etc/hosts for it
-  command: syslog://logstash:5544
+  environment:
+    - DEBUG=true
+    - ROUTE_URIS=logstash://logstash:5000
+  volumes: 
+   - /var/run/docker.sock:/tmp/docker.sock
   links:
-    - logstash
-  hostname: logspout
-  restart: always
+    -  logstash
 kibana:
   build: kibana/
   ports:
